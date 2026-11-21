@@ -9,10 +9,9 @@ const PAIRS = [
 
 const BASE = "https://otcharts.com";
 
-function bdTime(timestamp) {
-  if (!timestamp) return "--:--";
-
+function bdTime(timestamp = Date.now()) {
   let value = Number(timestamp);
+
   if (!Number.isFinite(value)) {
     value = Date.parse(timestamp);
   } else if (value < 100000000000) {
@@ -51,7 +50,9 @@ function rsi(values, period = 14) {
     else losses -= change;
   }
 
+  if (gains === 0 && losses === 0) return 50;
   if (losses === 0) return 100;
+  if (gains === 0) return 0;
 
   const rs = gains / losses;
   return 100 - 100 / (1 + rs);
@@ -62,7 +63,11 @@ function analyze(candles) {
     return "WAIT";
   }
 
-  const closes = candles.map(c => Number(c.close));
+  const sorted = [...candles].sort(
+    (a, b) => Number(a.time) - Number(b.time)
+  );
+
+  const closes = sorted.map(c => Number(c.close));
 
   if (closes.some(v => !Number.isFinite(v))) {
     return "WAIT";
@@ -70,7 +75,7 @@ function analyze(candles) {
 
   const fast = ema(closes, 9);
   const slow = ema(closes, 21);
-  const strength = rsi(closes);
+  const strength = rsi(closes, 14);
 
   if (fast > slow && strength >= 52 && strength < 70) {
     return "UP";
@@ -94,16 +99,19 @@ async function apiGet(path, key) {
   const raw = await response.text();
 
   let data;
+
   try {
     data = JSON.parse(raw);
   } catch {
-    throw new Error("API returned invalid JSON");
+    throw new Error(
+      `Invalid API response. HTTP ${response.status}`
+    );
   }
 
   if (!response.ok) {
     throw new Error(
-      `API HTTP ${response.status}: ${
-        data.message || data.error || raw.slice(0, 200)
+      `HTTP ${response.status}: ${
+        data.error || data.message || "API request failed"
       }`
     );
   }
@@ -117,104 +125,65 @@ export default async function handler() {
   if (!key) {
     return Response.json({
       status: "error",
-      message: "Netlify OTCHARTS_API_KEY missing"
+      message: "OTCHARTS_API_KEY missing in Netlify"
     }, { status: 500 });
   }
 
-  try {
-    // Check which market book this key can access
-    const venueData = await apiGet("/v1/venues", key);
+  const signals = [];
 
-    const venues = venueData.venues || [];
-    const quotex = venues.find(v => v.id === "quotex");
+  for (const pair of PAIRS) {
+    try {
+      const params = new URLSearchParams({
+        venue: "quotex",
+        symbol: pair,
+        tf: "60",
+        limit: "100"
+      });
 
-    if (!quotex || !quotex.open) {
-      return Response.json({
-        status: "error",
-        message: "Your API key does not have Quotex venue access",
-        venues
-      }, { status: 403 });
-    }
+      const data = await apiGet(
+        `/v1/candles?${params.toString()}`,
+        key
+      );
 
-    // Get the actual available Quotex symbols
-    const symbolData = await apiGet(
-      "/v1/symbols?venue=quotex",
-      key
-    );
+      const candles = data.candles;
 
-    const available = new Set(
-      (symbolData.symbols || []).map(s => s.symbol)
-    );
-
-    const signals = [];
-
-    for (const pair of PAIRS) {
-      try {
-        if (!available.has(pair)) {
-          signals.push({
-            pair: pair.replace("_otc", "-OTC"),
-            time: "--:--",
-            signal: "NO DATA",
-            error: "Symbol not available in Quotex catalogue"
-          });
-          continue;
-        }
-
-        const query = new URLSearchParams({
-          venue: "quotex",
-          symbol: pair,
-          tf: "60",
-          limit: "100"
-        });
-
-        const data = await apiGet(
-          `/v1/candles?${query.toString()}`,
-          key
-        );
-
-        const candles = data.candles || [];
-
-        if (!candles.length) {
-          signals.push({
-            pair: pair.replace("_otc", "-OTC"),
-            time: "--:--",
-            signal: "NO DATA",
-            error: "No candles returned by API"
-          });
-          continue;
-        }
-
-        const last = candles[candles.length - 1];
-
-        signals.push({
-          pair: pair.replace("_otc", "-OTC"),
-          time: bdTime(last.time),
-          signal: analyze(candles),
-          candles: candles.length
-        });
-
-      } catch (error) {
-        signals.push({
-          pair: pair.replace("_otc", "-OTC"),
-          time: "--:--",
-          signal: "ERROR",
-          error: error.message
-        });
+      if (!Array.isArray(candles) || candles.length === 0) {
+        throw new Error("No candle data received");
       }
+
+      const sorted = [...candles].sort(
+        (a, b) => Number(a.time) - Number(b.time)
+      );
+
+      const last = sorted[sorted.length - 1];
+
+      signals.push({
+        pair: pair.replace("_otc", "-OTC"),
+        time: bdTime(Date.now()),
+        candleTime: bdTime(last.time),
+        signal: analyze(sorted),
+        candles: sorted.length,
+        price: Number(last.close),
+        error: null
+      });
+
+    } catch (error) {
+      signals.push({
+        pair: pair.replace("_otc", "-OTC"),
+        time: bdTime(Date.now()),
+        candleTime: "--:--",
+        signal: "ERROR",
+        candles: 0,
+        error: error.message
+      });
     }
-
-    return Response.json({
-      status: "connected",
-      market: "QUOTEX OTC",
-      timeframe: "M1",
-      zone: "UTC+06:00",
-      signals
-    });
-
-  } catch (error) {
-    return Response.json({
-      status: "error",
-      message: error.message
-    }, { status: 500 });
   }
+
+  return Response.json({
+    status: "connected",
+    market: "QUOTEX OTC",
+    timeframe: "M1",
+    zone: "UTC+06:00",
+    signals
+  });
 }
