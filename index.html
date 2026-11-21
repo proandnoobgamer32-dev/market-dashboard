@@ -1,32 +1,37 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QUOTEX AI Dashboard</title>
+<title>QUOTEX AI</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#080d18;color:#e8edf7;font-family:Arial,sans-serif}
 header{padding:20px;background:#111a2b;border-bottom:1px solid #26334a}
 h1{color:#35d6a0;margin:0;font-size:25px}
-header p,.muted{color:#8998ad;font-size:12px}
+header p{color:#8d9ab0;font-size:12px}
 main{padding:16px;max-width:1100px;margin:auto}
-.status{background:#182438;padding:14px;border-radius:12px;margin-bottom:15px}
+.status{background:#182438;padding:14px;border-radius:12px;margin-bottom:15px;line-height:1.8}
+.dot{color:#ffbd59}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.card{background:#111a2b;border:1px solid #27344b;border-radius:13px;padding:16px;min-width:0;margin-bottom:12px}
+.card{background:#111a2b;border:1px solid #27344b;border-radius:13px;padding:16px;min-width:0}
 .card h3{font-size:14px;color:#9baac0;margin-top:0}
 .value{font-size:22px;font-weight:bold}
+.muted{color:#8998ad;font-size:12px;line-height:1.6}
 nav{display:flex;gap:8px;overflow:auto;padding:12px 0}
-nav button,button{background:#182438;color:white;border:1px solid #34425b;padding:11px;border-radius:9px;white-space:nowrap;cursor:pointer}
+nav button,button,select{background:#182438;color:white;border:1px solid #34425b;padding:11px;border-radius:9px}
+nav button{white-space:nowrap;cursor:pointer}
 button:active{background:#236d60}
-select{background:#182438;color:white;border:1px solid #34425b;padding:12px;border-radius:9px;width:100%;margin:8px 0}
+button{cursor:pointer}
+select{width:100%;margin-bottom:12px}
 section{margin-top:15px}
 .full{grid-column:1/-1}
-.good{color:#35d6a0}
-.bad{color:#ff7777}
-.warning{color:#ffbd59}
+.signal{font-size:32px;font-weight:bold;text-align:center;padding:12px}
+.green{color:#35d6a0}.red{color:#ff647c}.yellow{color:#ffbd59}
+.row{display:flex;justify-content:space-between;gap:8px;margin:9px 0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{padding:9px 5px;border-bottom:1px solid #27344b;text-align:left}
 footer{text-align:center;color:#718097;padding:25px;font-size:12px}
 [hidden]{display:none!important}
 @media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
@@ -36,14 +41,15 @@ footer{text-align:center;color:#718097;padding:25px;font-size:12px}
 
 <header>
 <h1>◈ QUOTEX AI</h1>
-<p>LIVE MARKET ANALYSIS DASHBOARD</p>
+<p>LIVE MARKET • 1 MINUTE CANDLE • AI SIGNALS</p>
 </header>
 
 <main>
 
 <div class="status">
-<strong>DATA STATUS: <span id="api-status" class="warning">CHECKING...</span></strong>
-<br><br>
+<strong>● DATA STATUS: </strong>
+<span class="dot" id="api-status">CONNECTING...</span>
+<br>
 <strong id="clock">Bangladesh Time: --:--:--</strong>
 </div>
 
@@ -51,10 +57,7 @@ footer{text-align:center;color:#718097;padding:25px;font-size:12px}
 <button onclick="show('overview')">Overview</button>
 <button onclick="show('market')">Market Analysis</button>
 <button onclick="show('scanner')">Scanner</button>
-<button onclick="show('signals')">Live Signals</button>
-<button onclick="show('future')">Future Analysis</button>
-<button onclick="show('news')">News</button>
-<button onclick="show('otc')">OTC</button>
+<button onclick="show('news')">News Alert</button>
 <button onclick="show('history')">History</button>
 <button onclick="show('settings')">Settings</button>
 </nav>
@@ -63,9 +66,8 @@ footer{text-align:center;color:#718097;padding:25px;font-size:12px}
 <div class="grid">
 
 <div class="card full">
-<h3>SELECT CURRENCY PAIR</h3>
-<select id="pair-select" onchange="loadSelectedPair()">
-<option>USD/PKR</option>
+<h3>SELECT TRADING PAIR</h3>
+<select id="pair">
 <option>EUR/USD</option>
 <option>GBP/USD</option>
 <option>USD/JPY</option>
@@ -73,39 +75,92 @@ footer{text-align:center;color:#718097;padding:25px;font-size:12px}
 <option>USD/CAD</option>
 <option>USD/CHF</option>
 <option>NZD/USD</option>
+<option>USD/PKR</option>
 <option>EUR/GBP</option>
 <option>EUR/JPY</option>
 <option>GBP/JPY</option>
 <option>USD/BDT</option>
 </select>
-<h2 id="selected-pair">USD/PKR</h2>
-<div class="value" id="selected-price">Loading...</div>
-<p id="pair-status" class="muted">Checking price...</p>
-<button onclick="loadSelectedPair()">REFRESH PRICE</button>
+<div class="row">
+<span class="muted">LIVE PRICE</span>
+<strong class="value" id="live-price">--</strong>
+</div>
+<div class="row">
+<span class="muted">PRICE SOURCE</span>
+<strong id="price-source">Waiting</strong>
+</div>
+<div class="muted" id="last-update">Waiting for market data...</div>
+</div>
+
+<div class="card">
+<h3>1 MIN CANDLE</h3>
+<div class="value" id="candle-count">0</div>
+<p class="muted">Collected candles</p>
+</div>
+
+<div class="card">
+<h3>TRADE COUNTDOWN</h3>
+<div class="value yellow" id="countdown">--</div>
+<p class="muted">Next minute signal time</p>
+</div>
+
+<div class="card">
+<h3>WIN</h3>
+<div class="value green" id="wins">0</div>
+</div>
+
+<div class="card">
+<h3>LOSS</h3>
+<div class="value red" id="losses">0</div>
+</div>
+
+<div class="card full">
+<h3>🤖 1 MINUTE TRADE SIGNAL</h3>
+<div class="signal yellow" id="signal">WAIT</div>
+<p class="muted" style="text-align:center" id="signal-reason">
+Collecting market data...
+</p>
+<div class="row">
+<span class="muted">SIGNAL PAIR</span>
+<strong id="signal-pair">EUR/USD</strong>
+</div>
+<div class="row">
+<span class="muted">SIGNAL PRICE</span>
+<strong id="signal-price">--</strong>
+</div>
+<div class="row">
+<span class="muted">TRADE EXPIRY</span>
+<strong>1 MINUTE</strong>
+</div>
+</div>
+
+<div class="card">
+<h3>RSI (14)</h3>
+<div class="value" id="rsi">--</div>
+</div>
+
+<div class="card">
+<h3>EMA TREND</h3>
+<div class="value" id="ema">--</div>
+</div>
+
+<div class="card">
+<h3>MACD</h3>
+<div class="value" id="macd">--</div>
 </div>
 
 <div class="card">
 <h3>MARKET TREND</h3>
-<div class="value">--</div>
-<p class="muted">Historical candles required</p>
+<div class="value" id="trend">WAIT</div>
 </div>
 
-<div class="card">
-<h3>NEWS STATUS</h3>
-<div class="value">OFFLINE</div>
-<p class="muted">News API not connected</p>
+<div class="card full">
+<h3>LIVE PAIRS</h3>
+<div id="live-pairs">
+<p>EUR/USD: <span id="eurusd">Loading...</span></p>
+<p>GBP/USD: <span id="gbpusd">Loading...</span></p>
+<p>USD/JPY: <span id="usdjpy">Loading...</span></p>
 </div>
-
-<div class="card">
-<h3>LIVE SIGNAL</h3>
-<div class="value">WAITING</div>
-<p class="muted">Analysis data required</p>
-</div>
-
-<div class="card">
-<h3>OTC STATUS</h3>
-<div class="value">OFFLINE</div>
-<p class="muted">OTC feed unavailable</p>
 </div>
 
 </div>
@@ -113,60 +168,58 @@ footer{text-align:center;color:#718097;padding:25px;font-size:12px}
 
 <section id="market" hidden>
 <div class="card">
-<h3>🤖 AI MARKET ANALYSIS</h3>
-<div id="market-analysis">Select a pair and analyze.</div>
-<button onclick="runMarketAnalysis()">ANALYZE MARKET</button>
-<p class="muted">Price-only data is not enough to calculate RSI, MACD or EMA.</p>
+<h3>LIVE MARKET ANALYSIS</h3>
+<p class="muted">Selected pair: <strong id="analysis-pair">EUR/USD</strong></p>
+<div class="signal yellow" id="market-signal">WAIT</div>
+<p id="analysis-reason" class="muted">Waiting for enough candle data.</p>
+<div class="row"><span>RSI</span><strong id="market-rsi">--</strong></div>
+<div class="row"><span>EMA</span><strong id="market-ema">--</strong></div>
+<div class="row"><span>MACD</span><strong id="market-macd">--</strong></div>
+<div class="row"><span>1 MIN CANDLES</span><strong id="market-candles">0</strong></div>
+</div>
+<div class="card">
+<h3>PRICE CANDLE HISTORY</h3>
+<div id="candle-history" class="muted">Collecting data...</div>
 </div>
 </section>
 
 <section id="scanner" hidden>
 <div class="card">
 <h3>SMART MARKET SCANNER</h3>
-<p id="scanner-result">Waiting for market data...</p>
-<button onclick="scanMarket()">SCAN SELECTED PAIR</button>
-</div>
-</section>
-
-<section id="signals" hidden>
-<div class="card">
-<h3>LIVE BUY / SELL SIGNALS</h3>
-<p class="warning">No verified trading signal available.</p>
-<p class="muted">Historical candle data and indicator calculations are required.</p>
-<div id="signal-result">WAITING FOR DATA</div>
-</div>
-</section>
-
-<section id="future" hidden>
-<div class="card">
-<h3>FUTURE MARKET ANALYSIS</h3>
-<p class="warning">Forecast unavailable.</p>
-<p class="muted">Future prices are uncertain. Historical data is required for a tested forecast.</p>
-<div id="future-result">NO VERIFIED FORECAST</div>
+<div id="scanner-results" class="muted">Loading pairs...</div>
 </div>
 </section>
 
 <section id="news" hidden>
 <div class="card">
-<h3>ECONOMIC NEWS</h3>
-<p class="warning">NEWS API NOT CONNECTED</p>
-<p class="muted">Connect a verified news provider to show actual headlines and release times.</p>
-<div id="news-list">No verified news available.</div>
-</div>
-</section>
-
-<section id="otc" hidden>
-<div class="card">
-<h3>QUOTEX OTC MARKET</h3>
-<p class="warning">OTC DATA NOT CONNECTED</p>
-<p class="muted">No verified Quotex OTC price source is configured. Regular Forex prices are not OTC prices.</p>
+<h3>📰 ECONOMIC NEWS ALERT</h3>
+<div class="value yellow">NEWS API NOT CONNECTED</div>
+<p class="muted">
+Real economic news, high-impact event alerts and release times
+require a separate verified economic calendar API.
+No fake news alerts will be displayed.
+</p>
+<div id="news-alert">Waiting for a news data provider.</div>
 </div>
 </section>
 
 <section id="history" hidden>
 <div class="card">
-<h3>ANALYSIS HISTORY</h3>
-<div id="history-list">No analysis records yet.</div>
+<h3>TRADE RESULT HISTORY</h3>
+<div class="grid">
+<div><p class="muted">TOTAL WIN</p><div class="value green" id="history-wins">0</div></div>
+<div><p class="muted">TOTAL LOSS</p><div class="value red" id="history-losses">0</div></div>
+</div>
+<div style="overflow-x:auto">
+<table>
+<thead>
+<tr><th>TIME</th><th>PAIR</th><th>SIGNAL</th><th>ENTRY</th><th>EXIT</th><th>RESULT</th></tr>
+</thead>
+<tbody id="history-list">
+<tr><td colspan="6">No results yet</td></tr>
+</tbody>
+</table>
+</div>
 </div>
 </section>
 
@@ -174,9 +227,10 @@ footer{text-align:center;color:#718097;padding:25px;font-size:12px}
 <div class="card">
 <h3>SETTINGS</h3>
 <p>Timezone: Bangladesh (UTC+6)</p>
-<p>Theme: Dark</p>
-<p>Price provider: Twelve Data</p>
-<p>Refresh: Manual</p>
+<p>Signal interval: 1 minute</p>
+<p>Signal alert: 2 seconds before next minute</p>
+<p>Price source: Existing Netlify quote function</p>
+<p class="muted">This dashboard does not place trades automatically.</p>
 </div>
 </section>
 
@@ -187,85 +241,401 @@ QUOTEX AI • Educational Market Analysis • No guaranteed predictions
 </footer>
 
 <script>
+const pairSelect=document.getElementById("pair");
+
+let currentPrice=null;
+let previousPrice=null;
+let priceSamples=[];
+let candles=[];
+let activeTrade=null;
+let wins=0;
+let losses=0;
+let lastSignalMinute="";
+let lastFetch=0;
+let currentSignal="WAIT";
+let currentReason="Collecting market data...";
+let busy=false;
+
 function show(id){
-document.querySelectorAll('main section').forEach(s=>s.hidden=true);
-document.getElementById(id).hidden=false;
+ document.querySelectorAll("main section").forEach(s=>s.hidden=true);
+ document.getElementById(id).hidden=false;
 }
 
-async function getQuote(pair){
-const response=await fetch(
-"/.netlify/functions/quote?symbol="+encodeURIComponent(pair)
-);
-if(!response.ok)throw new Error("API request failed");
-return await response.json();
-}
-
-async function loadSelectedPair(){
-const pair=document.getElementById("pair-select").value;
-document.getElementById("selected-pair").textContent=pair;
-document.getElementById("selected-price").textContent="Loading...";
-document.getElementById("pair-status").textContent="Checking price...";
-
-try{
-const data=await getQuote(pair);
-if(data.status==="connected" && data.price){
-document.getElementById("selected-price").textContent=data.price;
-document.getElementById("pair-status").textContent="Price received from "+(data.source||"API");
-document.getElementById("api-status").textContent="CONNECTED - PRICE CHECK OK";
-document.getElementById("api-status").className="good";
-}else{
-throw new Error(data.message||"Price unavailable");
-}
-}catch(error){
-document.getElementById("selected-price").textContent="Unavailable";
-document.getElementById("pair-status").textContent=error.message;
-document.getElementById("api-status").textContent="PAIR/API ERROR";
-document.getElementById("api-status").className="bad";
-}
-}
-
-async function runMarketAnalysis(){
-const pair=document.getElementById("pair-select").value;
-const box=document.getElementById("market-analysis");
-box.textContent="Checking "+pair+"...";
-try{
-const data=await getQuote(pair);
-if(data.status==="connected" && data.price){
-box.textContent=pair+" current price: "+data.price+
-". Price received. Historical candles are needed for technical analysis.";
-}else{
-box.textContent="Verified price unavailable.";
-}
-}catch(e){
-box.textContent="Analysis unavailable: "+e.message;
-}
-}
-
-async function scanMarket(){
-const pair=document.getElementById("pair-select").value;
-const box=document.getElementById("scanner-result");
-box.textContent="Scanning "+pair+"...";
-try{
-const data=await getQuote(pair);
-box.textContent=data.status==="connected"?
-pair+" price: "+data.price+". Candle data required for a trend scan.":
-"Price unavailable.";
-}catch(e){
-box.textContent="Scanner connection error.";
-}
+function timeNow(){
+ return new Date().toLocaleTimeString("en-GB",{
+  timeZone:"Asia/Dhaka"
+ });
 }
 
 function updateClock(){
-document.getElementById("clock").textContent=
-"Bangladesh Time: "+new Date().toLocaleTimeString("en-GB",{
-timeZone:"Asia/Dhaka"
-});
+ document.getElementById("clock").textContent=
+ "Bangladesh Time: "+timeNow();
+}
+setInterval(updateClock,1000);
+updateClock();
+
+async function getPrice(symbol){
+ const response=await fetch(
+  "/.netlify/functions/quote?symbol="+encodeURIComponent(symbol),
+  {cache:"no-store"}
+ );
+ if(!response.ok)throw new Error("Price API error");
+ const data=await response.json();
+ if(data.status!=="connected" || !Number.isFinite(Number(data.price))){
+  throw new Error("Price unavailable");
+ }
+ return Number(data.price);
 }
 
-updateClock();
-setInterval(updateClock,1000);
-loadSelectedPair();
+async function refreshPrice(){
+ if(busy)return;
+ busy=true;
+
+ try{
+  const symbol=pairSelect.value;
+  const price=await getPrice(symbol);
+
+  previousPrice=currentPrice;
+  currentPrice=price;
+
+  priceSamples.push({
+   time:Date.now(),
+   price:price
+  });
+
+  if(priceSamples.length>2500)priceSamples.shift();
+
+  document.getElementById("live-price").textContent=price;
+  document.getElementById("api-status").textContent="CONNECTED";
+  document.getElementById("api-status").className="green";
+  document.getElementById("price-source").textContent="Existing Quote API";
+  document.getElementById("last-update").textContent=
+   "Last update: "+timeNow();
+
+  updateCandle();
+  evaluateSignal();
+
+ }catch(error){
+  document.getElementById("api-status").textContent="CONNECTION ERROR";
+  document.getElementById("api-status").className="red";
+  document.getElementById("signal").textContent="WAIT";
+  document.getElementById("signal-reason").textContent=
+   "Price data unavailable. Check API connection.";
+ }finally{
+  busy=false;
+ }
+}
+
+/*
+ Price samples are grouped into minute candles.
+ These are sampled-price candles, not official broker candles.
+*/
+function updateCandle(){
+ const minute=Math.floor(Date.now()/60000);
+ let candle=candles.find(c=>c.minute===minute);
+
+ if(!candle){
+  candle={
+   minute:minute,
+   open:currentPrice,
+   high:currentPrice,
+   low:currentPrice,
+   close:currentPrice
+  };
+  candles.push(candle);
+ }else{
+  candle.high=Math.max(candle.high,currentPrice);
+  candle.low=Math.min(candle.low,currentPrice);
+  candle.close=currentPrice;
+ }
+
+ if(candles.length>200)candles.shift();
+
+ document.getElementById("candle-count").textContent=candles.length;
+ document.getElementById("market-candles").textContent=candles.length;
+
+ document.getElementById("candle-history").innerHTML=
+ candles.slice(-10).reverse().map(c=>
+  "O: "+c.open+" | H: "+c.high+
+  " | L: "+c.low+" | C: "+c.close
+ ).join("<br>");
+}
+
+function calculateRSI(data){
+ if(data.length<15)return null;
+ let gain=0,loss=0;
+ for(let i=data.length-14;i<data.length;i++){
+  const diff=data[i].close-data[i-1].close;
+  if(diff>0)gain+=diff;
+  else loss+=Math.abs(diff);
+ }
+ if(loss===0)return 100;
+ return 100-(100/(1+gain/14/(loss/14)));
+}
+
+function average(values){
+ return values.reduce((a,b)=>a+b,0)/values.length;
+}
+
+function ema(values,period){
+ if(values.length<period)return null;
+ const k=2/(period+1);
+ let result=average(values.slice(0,period));
+ for(let i=period;i<values.length;i++){
+  result=values[i]*k+result*(1-k);
+ }
+ return result;
+}
+
+function analyze(){
+ if(candles.length<26){
+  return {
+   signal:"WAIT",
+   reason:"Need at least 26 completed candles for analysis.",
+   rsi:null,
+   fast:null,
+   slow:null,
+   macd:null
+  };
+ }
+
+ const completed=candles.slice(0,-1);
+ const closes=completed.map(c=>c.close);
+
+ if(closes.length<26){
+  return {
+   signal:"WAIT",
+   reason:"Collecting completed candles.",
+   rsi:null,fast:null,slow:null,macd:null
+  };
+ }
+
+ const rsi=calculateRSI(completed);
+ const fast=ema(closes,12);
+ const slow=ema(closes,26);
+ const macd=fast-slow;
+
+ const recent=completed.slice(-3);
+ const bullish=recent.filter(c=>c.close>c.open).length;
+ const bearish=recent.filter(c=>c.close<c.open).length;
+
+ let score=0;
+
+ if(fast>slow)score++;
+ if(fast<slow)score--;
+
+ if(macd>0)score++;
+ if(macd<0)score--;
+
+ if(rsi!==null){
+  if(rsi>50 && rsi<70)score++;
+  if(rsi<50 && rsi>30)score--;
+ }
+
+ if(bullish>=2)score++;
+ if(bearish>=2)score--;
+
+ let signal="WAIT";
+ if(score>=3)signal="UP";
+ if(score<=-3)signal="DOWN";
+
+ return {
+  signal,
+  reason:"EMA + MACD + RSI + candle trend. Score: "+score,
+  rsi,fast,slow,macd
+ };
+}
+
+function evaluateSignal(){
+ const result=analyze();
+ currentSignal=result.signal;
+ currentReason=result.reason;
+
+ const rsiText=result.rsi===null?"--":result.rsi.toFixed(2);
+ const emaText=result.fast===null?"--":
+  result.fast>result.slow?"UP":"DOWN";
+ const macdText=result.macd===null?"--":result.macd.toFixed(6);
+
+ document.getElementById("rsi").textContent=rsiText;
+ document.getElementById("ema").textContent=emaText;
+ document.getElementById("macd").textContent=macdText;
+ document.getElementById("trend").textContent=result.signal;
+
+ document.getElementById("market-rsi").textContent=rsiText;
+ document.getElementById("market-ema").textContent=emaText;
+ document.getElementById("market-macd").textContent=macdText;
+ document.getElementById("analysis-pair").textContent=pairSelect.value;
+
+ document.getElementById("analysis-reason").textContent=result.reason;
+
+ const nextMinute=Math.ceil(Date.now()/60000)*60000;
+ const secondsLeft=Math.ceil((nextMinute-Date.now())/1000);
+
+ document.getElementById("countdown").textContent=
+  secondsLeft+" sec";
+
+ document.getElementById("signal-pair").textContent=pairSelect.value;
+
+ // Signal fires at the final two seconds of the current minute.
+ const now=new Date();
+ const minuteKey=now.getHours()+":"+now.getMinutes();
+
+ if(now.getSeconds()>=58 && lastSignalMinute!==minuteKey){
+  lastSignalMinute=minuteKey;
+  publishSignal(result);
+ }
+}
+
+function publishSignal(result){
+ const signal=result.signal;
+ const el=document.getElementById("signal");
+
+ el.textContent=signal;
+ el.className="signal "+
+  (signal==="UP"?"green":signal==="DOWN"?"red":"yellow");
+
+ document.getElementById("signal-reason").textContent=
+  signal==="WAIT"?
+  "WAIT — Not enough clear confirmation.":
+  "2-second signal alert: "+signal+" | "+result.reason;
+
+ document.getElementById("signal-price").textContent=
+  currentPrice===null?"--":currentPrice;
+
+ document.getElementById("market-signal").textContent=signal;
+ document.getElementById("market-signal").className=
+  "signal "+(signal==="UP"?"green":signal==="DOWN"?"red":"yellow");
+
+ document.getElementById("analysis-pair").textContent=pairSelect.value;
+
+ if(signal==="UP" || signal==="DOWN"){
+  if("Notification" in window && Notification.permission==="granted"){
+   new Notification("QUOTEX AI SIGNAL",{
+    body:pairSelect.value+" : "+signal+" (1 minute)"
+   });
+  }
+
+  // Only one active result is tracked at a time.
+  if(!activeTrade){
+   activeTrade={
+    pair:pairSelect.value,
+    signal:signal,
+    entry:currentPrice,
+    time:Date.now(),
+    expiry:Date.now()+60000
+   };
+  }
+ }
+}
+
+function checkTradeResult(){
+ if(!activeTrade || currentPrice===null)return;
+ if(Date.now()<activeTrade.expiry)return;
+
+ const trade=activeTrade;
+ const exit=currentPrice;
+
+ let win=false;
+ if(trade.signal==="UP" && exit>trade.entry)win=true;
+ if(trade.signal==="DOWN" && exit<trade.entry)win=true;
+
+ if(win)wins++;
+ else losses++;
+
+ document.getElementById("wins").textContent=wins;
+ document.getElementById("losses").textContent=losses;
+ document.getElementById("history-wins").textContent=wins;
+ document.getElementById("history-losses").textContent=losses;
+
+ const row=document.createElement("tr");
+ row.innerHTML=`
+ <td>${new Date(trade.time).toLocaleTimeString("en-GB",{timeZone:"Asia/Dhaka"})}</td>
+ <td>${trade.pair}</td>
+ <td class="${trade.signal==="UP"?"green":"red"}">${trade.signal}</td>
+ <td>${trade.entry}</td>
+ <td>${exit}</td>
+ <td class="${win?"green":"red"}">${win?"WIN":"LOSS"}</td>
+ `;
+
+ const list=document.getElementById("history-list");
+ if(list.children.length===1 && list.textContent.includes("No results")){
+  list.innerHTML="";
+ }
+ list.prepend(row);
+
+ activeTrade=null;
+}
+
+function updatePairDisplay(){
+ document.getElementById("signal-pair").textContent=pairSelect.value;
+ document.getElementById("analysis-pair").textContent=pairSelect.value;
+ document.getElementById("live-price").textContent="--";
+ document.getElementById("signal").textContent="WAIT";
+ document.getElementById("signal").className="signal yellow";
+ document.getElementById("signal-reason").textContent="Loading selected pair...";
+ priceSamples=[];
+ candles=[];
+ currentPrice=null;
+ previousPrice=null;
+ lastSignalMinute="";
+ activeTrade=null;
+}
+
+pairSelect.addEventListener("change",()=>{
+ updatePairDisplay();
+ refreshPrice();
+});
+
+async function loadPairs(){
+ const pairs=["EUR/USD","GBP/USD","USD/JPY"];
+
+ for(const pair of pairs){
+  const id=pair.replace("/","").toLowerCase();
+  try{
+   const price=await getPrice(pair);
+   document.getElementById(id).textContent=price;
+  }catch(error){
+   document.getElementById(id).textContent="Unavailable";
+  }
+ }
+}
+
+async function runScanner(){
+ const pairs=["EUR/USD","GBP/USD","USD/JPY"];
+ let output="";
+ for(const pair of pairs){
+  try{
+   const p=await getPrice(pair);
+   output+=`<p>${pair}: <strong>${p}</strong> — Live price received</p>`;
+  }catch(e){
+   output+=`<p>${pair}: Data unavailable</p>`;
+  }
+ }
+ document.getElementById("scanner-results").innerHTML=output;
+}
+
+async function startNotifications(){
+ if("Notification" in window && Notification.permission==="default"){
+  try{await Notification.requestPermission()}catch(e){}
+ }
+}
+
+document.addEventListener("click",startNotifications,{once:true});
+
+setInterval(()=>{
+ refreshPrice();
+ checkTradeResult();
+},2000);
+
+setInterval(loadPairs,60000);
+setInterval(runScanner,60000);
+
+refreshPrice();
+loadPairs();
+runScanner();
 </script>
 
 </body>
 </html>
+
+
