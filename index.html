@@ -53,9 +53,40 @@ footer{text-align:center;color:#718097;padding:25px;font-size:12px}
 <section id="overview">
 <div class="grid">
 <div class="card">
-<h3>LIVE PAIRS</h3>
-<div class="value">--</div>
-<p class="muted">Waiting for verified API</p>
+<h3>LIVE PAIRS</h3><h3>LIVE PAIRS</h3>
+
+<div id="live-pairs">
+  <p>EUR/USD: <span id="eurusd">Loading...</span></p>
+  <p>GBP/USD: <span id="gbpusd">Loading...</span></p>
+  <p>USD/JPY: <span id="usdjpy">Loading...</span></p>
+</div>
+
+<script>
+async function loadPairs() {
+  const pairs = ["EUR/USD", "GBP/USD", "USD/JPY"];
+
+  for (const pair of pairs) {
+    const id = pair.replace("/", "").toLowerCase();
+
+    try {
+      const response = await fetch(
+        "/.netlify/functions/quote?symbol=" +
+        encodeURIComponent(pair)
+      );
+
+      const data = await response.json();
+
+      document.getElementById(id).textContent =
+        data.status === "connected" ? data.price : "Unavailable";
+    } catch (error) {
+      document.getElementById(id).textContent = "Error";
+    }
+  }
+}
+
+loadPairs();
+setInterval(loadPairs, 60000);
+</script>
 </div>
 <div class="card">
 <h3>MARKET TREND</h3>
