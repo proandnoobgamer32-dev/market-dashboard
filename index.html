@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUOTEX AI</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080d18;color:#e8edf7;font-family:Arial,sans-serif}
+header{padding:20px;background:#111a2b;border-bottom:1px solid #26334a}
+h1{color:#35d6a0;margin:0;font-size:25px}
+header p{color:#8d9ab0;font-size:12px}
+main{padding:16px;max-width:1100px;margin:auto}
+.status{background:#182438;padding:14px;border-radius:12px;margin-bottom:15px}
+.dot{color:#ffbd59}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:#111a2b;border:1px solid #27344b;border-radius:13px;padding:16px;min-width:0}
+.card h3{font-size:14px;color:#9baac0;margin-top:0}
+.value{font-size:22px;font-weight:bold}
+.muted{color:#8998ad;font-size:12px}
+nav{display:flex;gap:8px;overflow:auto;padding:12px 0}
+nav button{background:#182438;color:white;border:1px solid #34425b;padding:11px;border-radius:9px;white-space:nowrap}
+button:active{background:#236d60}
+section{margin-top:15px}
+.full{grid-column:1/-1}
+footer{text-align:center;color:#718097;padding:25px;font-size:12px}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<header>
+<h1>◈ QUOTEX AI</h1>
+<p>LIVE MARKET ANALYSIS DASHBOARD</p>
+</header>
+<main>
+<div class="status">
+<strong>● DATA STATUS:</strong>
+<span class="dot"> API NOT CONNECTED</span>
+<p class="muted">No live prices are displayed until a verified data source is connected.</p>
+<strong id="clock">Bangladesh Time: --:--:--</strong>
+</div>
+
+<nav>
+<button onclick="show('overview')">Overview</button>
+<button onclick="show('market')">Market Analysis</button>
+<button onclick="show('scanner')">Scanner</button>
+<button onclick="show('news')">News</button>
+<button onclick="show('history')">History</button>
+<button onclick="show('settings')">Settings</button>
+</nav>
+
+<section id="overview">
+<div class="grid">
+<div class="card">
+<h3>LIVE PAIRS</h3>
+<div class="value">--</div>
+<p class="muted">Waiting for verified API</p>
+</div>
+<div class="card">
+<h3>MARKET TREND</h3>
+<div class="value">--</div>
+<p class="muted">No verified data</p>
+</div>
+<div class="card">
+<h3>NEWS STATUS</h3>
+<div class="value">--</div>
+<p class="muted">News API not connected</p>
+</div>
+<div class="card">
+<h3>DATA QUALITY</h3>
+<div class="value">UNKNOWN</div>
+<p class="muted">Source not connected</p>
+</div>
+<div class="card full">
+<h3>MARKET OVERVIEW</h3>
+<p class="muted">Live market analysis will appear here after connecting a verified market data API.</p>
+</div>
+</div>
+</section>
+
+<section id="market" hidden>
+<div class="card">
+<h3>LIVE MARKET ANALYSIS</h3>
+<p class="muted">Forex pairs, candles, RSI, MACD, EMA, Bollinger Bands and support/resistance.</p>
+<p>Price: --</p>
+<p>RSI: --</p>
+<p>MACD: --</p>
+<p>EMA: --</p>
+<p>Trend: DATA UNAVAILABLE</p>
+</div>
+</section>
+
+<section id="scanner" hidden>
+<div class="card">
+<h3>SMART MARKET SCANNER</h3>
+<p class="muted">No verified currency-pair feed connected.</p>
+<p>Scanner status: WAITING FOR DATA</p>
+</div>
+</section>
+
+<section id="news" hidden>
+<div class="card">
+<h3>ECONOMIC NEWS</h3>
+<p class="muted">Connect a verified economic calendar API to display actual news and release times.</p>
+</div>
+</section>
+
+<section id="history" hidden>
+<div class="card">
+<h3>ANALYSIS HISTORY</h3>
+<p class="muted">No verified analysis records yet.</p>
+</div>
+</section>
+
+<section id="settings" hidden>
+<div class="card">
+<h3>SETTINGS</h3>
+<p>Timezone: Bangladesh (UTC+6)</p>
+<p>Theme: Dark</p>
+<p>Data mode: Verified sources only</p>
+</div>
+</section>
+</main>
+<footer>QUOTEX AI • Educational Market Analysis • No guaranteed predictions</footer>
+
+<script>
+function show(id){
+document.querySelectorAll('main section').forEach(s=>s.hidden=true);
+document.getElementById(id).hidden=false;
+}
+function updateClock(){
+const now=new Date();
+document.getElementById('clock').textContent=
+'Bangladesh Time: '+now.toLocaleTimeString('en-GB',{timeZone:'Asia/Dhaka'});
+}
+updateClock();
+setInterval(updateClock,1000);
+</script>
+</body>
+</html>
