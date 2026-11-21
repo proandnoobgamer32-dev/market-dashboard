@@ -1,194 +1,172 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QUOTEX AI</title>
+<title>QUOTEX AI Dashboard</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#080d18;color:#e8edf7;font-family:Arial,sans-serif}
 header{padding:20px;background:#111a2b;border-bottom:1px solid #26334a}
 h1{color:#35d6a0;margin:0;font-size:25px}
-header p{color:#8d9ab0;font-size:12px}
+header p,.muted{color:#8998ad;font-size:12px}
 main{padding:16px;max-width:1100px;margin:auto}
 .status{background:#182438;padding:14px;border-radius:12px;margin-bottom:15px}
-.dot{color:#ffbd59}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.card{background:#111a2b;border:1px solid #27344b;border-radius:13px;padding:16px;min-width:0}
+.card{background:#111a2b;border:1px solid #27344b;border-radius:13px;padding:16px;min-width:0;margin-bottom:12px}
 .card h3{font-size:14px;color:#9baac0;margin-top:0}
 .value{font-size:22px;font-weight:bold}
-.muted{color:#8998ad;font-size:12px}
 nav{display:flex;gap:8px;overflow:auto;padding:12px 0}
-nav button{background:#182438;color:white;border:1px solid #34425b;padding:11px;border-radius:9px;white-space:nowrap}
+nav button,button{background:#182438;color:white;border:1px solid #34425b;padding:11px;border-radius:9px;white-space:nowrap;cursor:pointer}
 button:active{background:#236d60}
+select{background:#182438;color:white;border:1px solid #34425b;padding:12px;border-radius:9px;width:100%;margin:8px 0}
 section{margin-top:15px}
 .full{grid-column:1/-1}
+.good{color:#35d6a0}
+.bad{color:#ff7777}
+.warning{color:#ffbd59}
 footer{text-align:center;color:#718097;padding:25px;font-size:12px}
+[hidden]{display:none!important}
 @media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
 </style>
 </head>
 <body>
+
 <header>
 <h1>◈ QUOTEX AI</h1>
-<p>LIVE MARKET ANALYSIS DASHBOARD</p> 
-  
-<section class="card">
-  <h3>🤖 AI MARKET ANALYSIS</h3>
-
-  <div id="market-analysis">
-    <p>Loading market data...</p>
-  </div>
-
-  <button onclick="runMarketAnalysis()">
-    ANALYZE MARKET
-  </button>
-</section>
-
-<script>
-async function runMarketAnalysis() {
-  const pairs = ["EUR/USD", "GBP/USD", "USD/JPY"];
-  const box = document.getElementById("market-analysis");
-
-  box.innerHTML = "Analyzing market...";
-
-  let output = "";
-
-  for (const pair of pairs) {
-    try {
-      const res = await fetch(
-        "/.netlify/functions/quote?symbol=" +
-        encodeURIComponent(pair)
-      );
-
-      const data = await res.json();
-
-      if (data.status !== "connected") {
-        output += `<p>${pair}: Data unavailable</p>`;
-        continue;
-      }
-
-      output += `
-        <p><b>${pair}</b>: ${data.price}</p>
-        <p>Price received. More candles needed for trend analysis.</p>
-      `;
-    } catch (e) {
-      output += `<p>${pair}: Connection error</p>`;
-    }
-  }
-
-  box.innerHTML = output;
-}
-
-runMarketAnalysis();
-</script>
-
+<p>LIVE MARKET ANALYSIS DASHBOARD</p>
 </header>
+
 <main>
+
 <div class="status">
-<strong>● DATA STATUS:<span class="dot" id="api-status"> API CONNECTED</span> <strong id="clock">Bangladesh Time: --:--:--</strong>-</strong>
+<strong>DATA STATUS: <span id="api-status" class="warning">CHECKING...</span></strong>
+<br><br>
+<strong id="clock">Bangladesh Time: --:--:--</strong>
 </div>
 
 <nav>
 <button onclick="show('overview')">Overview</button>
 <button onclick="show('market')">Market Analysis</button>
 <button onclick="show('scanner')">Scanner</button>
+<button onclick="show('signals')">Live Signals</button>
+<button onclick="show('future')">Future Analysis</button>
 <button onclick="show('news')">News</button>
+<button onclick="show('otc')">OTC</button>
 <button onclick="show('history')">History</button>
 <button onclick="show('settings')">Settings</button>
 </nav>
 
 <section id="overview">
 <div class="grid">
-<div class="card">
-<h3>LIVE PAIRS</h3><h3>LIVE PAIRS</h3>
 
-<div id="live-pairs">
-  <p>EUR/USD: <span id="eurusd">Loading...</span></p>
-  <p>GBP/USD: <span id="gbpusd">Loading...</span></p>
-  <p>USD/JPY: <span id="usdjpy">Loading...</span></p>
+<div class="card full">
+<h3>SELECT CURRENCY PAIR</h3>
+<select id="pair-select" onchange="loadSelectedPair()">
+<option>USD/PKR</option>
+<option>EUR/USD</option>
+<option>GBP/USD</option>
+<option>USD/JPY</option>
+<option>AUD/USD</option>
+<option>USD/CAD</option>
+<option>USD/CHF</option>
+<option>NZD/USD</option>
+<option>EUR/GBP</option>
+<option>EUR/JPY</option>
+<option>GBP/JPY</option>
+<option>USD/BDT</option>
+</select>
+<h2 id="selected-pair">USD/PKR</h2>
+<div class="value" id="selected-price">Loading...</div>
+<p id="pair-status" class="muted">Checking price...</p>
+<button onclick="loadSelectedPair()">REFRESH PRICE</button>
 </div>
 
-<script>
-async function loadPairs() {
-  const pairs = ["EUR/USD", "GBP/USD", "USD/JPY"];
-
-  for (const pair of pairs) {
-    const id = pair.replace("/", "").toLowerCase();
-
-    try {
-      const response = await fetch(
-        "/.netlify/functions/quote?symbol=" +
-        encodeURIComponent(pair)
-      );
-
-      const data = await response.json();
-
-      document.getElementById(id).textContent =
-        data.status === "connected" ? data.price : "Unavailable";
-    } catch (error) {
-      document.getElementById(id).textContent = "Error";
-    }
-  }
-}
-
-loadPairs();
-setInterval(loadPairs, 60000);
-</script>
-</div>
 <div class="card">
 <h3>MARKET TREND</h3>
 <div class="value">--</div>
-<p class="muted">No verified data</p>
+<p class="muted">Historical candles required</p>
 </div>
+
 <div class="card">
 <h3>NEWS STATUS</h3>
-<div class="value">--</div>
+<div class="value">OFFLINE</div>
 <p class="muted">News API not connected</p>
 </div>
+
 <div class="card">
-<h3>DATA QUALITY</h3>
-<div class="value">UNKNOWN</div>
-<p class="muted">Source not connected</p>
+<h3>LIVE SIGNAL</h3>
+<div class="value">WAITING</div>
+<p class="muted">Analysis data required</p>
 </div>
-<div class="card full">
-<h3>MARKET OVERVIEW</h3>
-<p class="muted">Live market analysis will appear here after connecting a verified market data API.</p>
+
+<div class="card">
+<h3>OTC STATUS</h3>
+<div class="value">OFFLINE</div>
+<p class="muted">OTC feed unavailable</p>
 </div>
+
 </div>
 </section>
 
 <section id="market" hidden>
 <div class="card">
-<h3>LIVE MARKET ANALYSIS</h3>
-<p class="muted">Forex pairs, candles, RSI, MACD, EMA, Bollinger Bands and support/resistance.</p>
-<p>Price: --</p>
-<p>RSI: --</p>
-<p>MACD: --</p>
-<p>EMA: --</p>
-<p>Trend: DATA UNAVAILABLE</p>
+<h3>🤖 AI MARKET ANALYSIS</h3>
+<div id="market-analysis">Select a pair and analyze.</div>
+<button onclick="runMarketAnalysis()">ANALYZE MARKET</button>
+<p class="muted">Price-only data is not enough to calculate RSI, MACD or EMA.</p>
 </div>
 </section>
 
 <section id="scanner" hidden>
 <div class="card">
 <h3>SMART MARKET SCANNER</h3>
-<p class="muted">No verified currency-pair feed connected.</p>
-<p>Scanner status: WAITING FOR DATA</p>
+<p id="scanner-result">Waiting for market data...</p>
+<button onclick="scanMarket()">SCAN SELECTED PAIR</button>
+</div>
+</section>
+
+<section id="signals" hidden>
+<div class="card">
+<h3>LIVE BUY / SELL SIGNALS</h3>
+<p class="warning">No verified trading signal available.</p>
+<p class="muted">Historical candle data and indicator calculations are required.</p>
+<div id="signal-result">WAITING FOR DATA</div>
+</div>
+</section>
+
+<section id="future" hidden>
+<div class="card">
+<h3>FUTURE MARKET ANALYSIS</h3>
+<p class="warning">Forecast unavailable.</p>
+<p class="muted">Future prices are uncertain. Historical data is required for a tested forecast.</p>
+<div id="future-result">NO VERIFIED FORECAST</div>
 </div>
 </section>
 
 <section id="news" hidden>
 <div class="card">
 <h3>ECONOMIC NEWS</h3>
-<p class="muted">Connect a verified economic calendar API to display actual news and release times.</p>
+<p class="warning">NEWS API NOT CONNECTED</p>
+<p class="muted">Connect a verified news provider to show actual headlines and release times.</p>
+<div id="news-list">No verified news available.</div>
+</div>
+</section>
+
+<section id="otc" hidden>
+<div class="card">
+<h3>QUOTEX OTC MARKET</h3>
+<p class="warning">OTC DATA NOT CONNECTED</p>
+<p class="muted">No verified Quotex OTC price source is configured. Regular Forex prices are not OTC prices.</p>
 </div>
 </section>
 
 <section id="history" hidden>
 <div class="card">
 <h3>ANALYSIS HISTORY</h3>
-<p class="muted">No verified analysis records yet.</p>
+<div id="history-list">No analysis records yet.</div>
 </div>
 </section>
 
@@ -197,24 +175,97 @@ setInterval(loadPairs, 60000);
 <h3>SETTINGS</h3>
 <p>Timezone: Bangladesh (UTC+6)</p>
 <p>Theme: Dark</p>
-<p>Data mode: Verified sources only</p>
+<p>Price provider: Twelve Data</p>
+<p>Refresh: Manual</p>
 </div>
 </section>
+
 </main>
-<footer>QUOTEX AI • Educational Market Analysis • No guaranteed predictions</footer>
+
+<footer>
+QUOTEX AI • Educational Market Analysis • No guaranteed predictions
+</footer>
 
 <script>
 function show(id){
 document.querySelectorAll('main section').forEach(s=>s.hidden=true);
 document.getElementById(id).hidden=false;
 }
-function updateClock(){
-const now=new Date();
-document.getElementById('clock').textContent=
-'Bangladesh Time: '+now.toLocaleTimeString('en-GB',{timeZone:'Asia/Dhaka'});
+
+async function getQuote(pair){
+const response=await fetch(
+"/.netlify/functions/quote?symbol="+encodeURIComponent(pair)
+);
+if(!response.ok)throw new Error("API request failed");
+return await response.json();
 }
+
+async function loadSelectedPair(){
+const pair=document.getElementById("pair-select").value;
+document.getElementById("selected-pair").textContent=pair;
+document.getElementById("selected-price").textContent="Loading...";
+document.getElementById("pair-status").textContent="Checking price...";
+
+try{
+const data=await getQuote(pair);
+if(data.status==="connected" && data.price){
+document.getElementById("selected-price").textContent=data.price;
+document.getElementById("pair-status").textContent="Price received from "+(data.source||"API");
+document.getElementById("api-status").textContent="CONNECTED - PRICE CHECK OK";
+document.getElementById("api-status").className="good";
+}else{
+throw new Error(data.message||"Price unavailable");
+}
+}catch(error){
+document.getElementById("selected-price").textContent="Unavailable";
+document.getElementById("pair-status").textContent=error.message;
+document.getElementById("api-status").textContent="PAIR/API ERROR";
+document.getElementById("api-status").className="bad";
+}
+}
+
+async function runMarketAnalysis(){
+const pair=document.getElementById("pair-select").value;
+const box=document.getElementById("market-analysis");
+box.textContent="Checking "+pair+"...";
+try{
+const data=await getQuote(pair);
+if(data.status==="connected" && data.price){
+box.textContent=pair+" current price: "+data.price+
+". Price received. Historical candles are needed for technical analysis.";
+}else{
+box.textContent="Verified price unavailable.";
+}
+}catch(e){
+box.textContent="Analysis unavailable: "+e.message;
+}
+}
+
+async function scanMarket(){
+const pair=document.getElementById("pair-select").value;
+const box=document.getElementById("scanner-result");
+box.textContent="Scanning "+pair+"...";
+try{
+const data=await getQuote(pair);
+box.textContent=data.status==="connected"?
+pair+" price: "+data.price+". Candle data required for a trend scan.":
+"Price unavailable.";
+}catch(e){
+box.textContent="Scanner connection error.";
+}
+}
+
+function updateClock(){
+document.getElementById("clock").textContent=
+"Bangladesh Time: "+new Date().toLocaleTimeString("en-GB",{
+timeZone:"Asia/Dhaka"
+});
+}
+
 updateClock();
 setInterval(updateClock,1000);
+loadSelectedPair();
 </script>
+
 </body>
 </html>
