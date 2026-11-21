@@ -31,7 +31,58 @@ footer{text-align:center;color:#718097;padding:25px;font-size:12px}
 <body>
 <header>
 <h1>◈ QUOTEX AI</h1>
-<p>LIVE MARKET ANALYSIS DASHBOARD</p>
+<p>LIVE MARKET ANALYSIS DASHBOARD</p> 
+  
+<section class="card">
+  <h3>🤖 AI MARKET ANALYSIS</h3>
+
+  <div id="market-analysis">
+    <p>Loading market data...</p>
+  </div>
+
+  <button onclick="runMarketAnalysis()">
+    ANALYZE MARKET
+  </button>
+</section>
+
+<script>
+async function runMarketAnalysis() {
+  const pairs = ["EUR/USD", "GBP/USD", "USD/JPY"];
+  const box = document.getElementById("market-analysis");
+
+  box.innerHTML = "Analyzing market...";
+
+  let output = "";
+
+  for (const pair of pairs) {
+    try {
+      const res = await fetch(
+        "/.netlify/functions/quote?symbol=" +
+        encodeURIComponent(pair)
+      );
+
+      const data = await res.json();
+
+      if (data.status !== "connected") {
+        output += `<p>${pair}: Data unavailable</p>`;
+        continue;
+      }
+
+      output += `
+        <p><b>${pair}</b>: ${data.price}</p>
+        <p>Price received. More candles needed for trend analysis.</p>
+      `;
+    } catch (e) {
+      output += `<p>${pair}: Connection error</p>`;
+    }
+  }
+
+  box.innerHTML = output;
+}
+
+runMarketAnalysis();
+</script>
+
 </header>
 <main>
 <div class="status">
